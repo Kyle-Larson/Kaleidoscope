@@ -1,3 +1,3 @@
-[submodule "ThirdParty/SDL2"]
-	path = ThirdParty/SDL2
-	url = https://github.com/emscripten-ports/SDL2.git
+[submodule "ThirdParty/glfw"]
+	path = ThirdParty/glfw
+	url = https://github.com/glfw/glfw.git
