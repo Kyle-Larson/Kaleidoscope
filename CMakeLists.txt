@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.0)
+project(Kaleidoscope)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIR})
+set(LIBS ${LIBS} ${SDL2_LIBRARY})
+
+if(${SDL2_FOUND})
+    message("SDL2 Found!")
+endif()
+message(${SDL2_INCLUDE_DIR})
+# message(${SDL2_LIBRARY})
+
+add_executable(Kaleidoscope src/main.cpp)
+target_link_libraries(${PROJECT_NAME} ${LIBS})
