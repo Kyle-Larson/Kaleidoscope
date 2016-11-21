@@ -34,6 +34,7 @@ endif()
 
 if(EMSCRIPTEN)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINER_FLAGS} -s USE_GLFW=3")
 endif()
 
 add_executable(Kaleidoscope src/main.cpp)
