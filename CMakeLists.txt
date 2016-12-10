@@ -24,11 +24,20 @@ add_subdirectory("ThirdParty/glfw" "${CMAKE_BINARY_DIR}/glfw")
 set(THIRDPARTY_INCLUDE_DIRS ${THIRDPARTY_INCLUDE_DIRS} "ThirdParty/glfw/include")
 set(THIRDPARTY_LIBS ${THIRDPARTY_LIBS} glfw)
 
+# GLEW Specific vars
+set(glew-cmake_BUILD_STATIC ON CACHE BOOL "" FORCE)
+
+
+add_subdirectory("ThirdParty/glew-cmake" "${CMAKE_BINARY_DIR}/glew-cmake")
+set(THIRDPARTY_INCLUDE_DIRS ${THIRDPARTY_INCLUDE_DIRS} "ThirdParty/glew-cmake/include")
+set(THIRDPARTY_LIBS ${THIRDPARTY_LIBS} glew)
+link_directories("build/lib/Release")
+
 # OpenGL
 find_package(OpenGL REQUIRED)
 
 set(THIRDPARTY_INCLUDE_DIRS ${THIRDPARTY_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR})
-set(THIRDPARTY_LIBS ${THIRDPARTY_LIBS} ${OPENGL_gl_LIBRARY})
+set(THIRDPARTY_LIBS ${THIRDPARTY_LIBS} ${OPENGL_LIBRARIES})
 
 endif()
 
