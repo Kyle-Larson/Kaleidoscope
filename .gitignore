@@ -297,3 +297,6 @@ build/
 
 # Build folder for emscripten
 embuild
+
+# Build folder for projects
+build
