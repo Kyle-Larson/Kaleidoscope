@@ -46,9 +46,32 @@ if(EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINER_FLAGS} -s USE_GLFW=3")
 endif()
 
-add_executable(Kaleidoscope src/main.cpp)
+file(GLOB_RECURSE KALEIDO_SRC "src/*.cpp")
+file(GLOB_RECURSE KALEIDO_INC "include/*.h??")
+set(KALEIDO_FILES ${KALEIDO_INC} ${KALEIDO_SRC})
 
-include_directories(${THIRDPARTY_INCLUDE_DIRS})
+include_directories("include" ${THIRDPARTY_INCLUDE_DIRS})
+
+if(WIN32)
+    # Special thanks to Florian for this source group trick
+    # http://stackoverflow.com/a/31423421
+    function(assign_source_group)
+        foreach(_source IN ITEMS ${ARGN})
+            if (IS_ABSOLUTE "${_source}")
+                file(RELATIVE_PATH _source_rel "${CMAKE_CURRENT_SOURCE_DIR}" "${_source}")
+            else()
+                set(source_rel "${_source}")
+            endif()
+            get_filename_component(_source_path "${_source_rel}" PATH)
+            string(REPLACE "/" "\\" _source_path_msvc "${_source_path}")
+            source_group("${_source_path_msvc}" FILES "${_source}")
+        endforeach()
+    endfunction(assign_source_group)
+    assign_source_group(${KALEIDO_FILES})
+endif()
+
+
+add_executable(Kaleidoscope ${KALEIDO_FILES})
 target_link_libraries(Kaleidoscope ${THIRDPARTY_LIBS})
 
 install(TARGETS Kaleidoscope RUNTIME DESTINATION ${BIN_DIR})
