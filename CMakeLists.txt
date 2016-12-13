@@ -46,9 +46,17 @@ if(EMSCRIPTEN)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINER_FLAGS} -s USE_GLFW=3")
 endif()
 
-add_executable(Kaleidoscope src/main.cpp)
+file(GLOB_RECURSE KALEIDO_SRC "src/*.cpp")
 
-include_directories(${THIRDPARTY_INCLUDE_DIRS})
+include_directories("include" ${THIRDPARTY_INCLUDE_DIRS})
+
+if(WIN32)
+    file(GLOB_RECURSE KALEIDO_INC "include/*.h??")
+    source_group("Source Files\\inc" FILES ${KALEIDO_INC})
+    source_group("Source Files\\src" FILES ${KALEIDO_SRC})
+endif()
+
+add_executable(Kaleidoscope ${KALEIDO_SRC})
 target_link_libraries(Kaleidoscope ${THIRDPARTY_LIBS})
 
 install(TARGETS Kaleidoscope RUNTIME DESTINATION ${BIN_DIR})
