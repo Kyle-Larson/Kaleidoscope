@@ -34,6 +34,9 @@ set(THIRDPARTY_INCLUDE_DIRS ${THIRDPARTY_INCLUDE_DIRS} "ThirdParty/glew-cmake/in
 set(THIRDPARTY_LIBS ${THIRDPARTY_LIBS} glew)
 link_directories("build/lib/Release")
 
+# GLM
+set(THIRDPARTY_INCLUDE_DIRS ${THIRDPARTY_INCLUDE_DIRS} "ThirdParty/glm")
+
 # OpenGL
 find_package(OpenGL REQUIRED)
 
