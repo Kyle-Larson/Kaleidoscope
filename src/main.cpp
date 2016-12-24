@@ -6,14 +6,17 @@
 #include <emscripten.h>
 #endif
 
-#define GLEW_STATIC
-#include <gl/glew.h>
+#include <Glew.h>
 #include <GLFW/glfw3.h>
 
+#include "Device/Device.hpp"
+
+
 GLFWwindow* g_mainWindow;
-GLuint VertexArrayID;
-GLuint vertexBuffer;
-GLuint programID;
+Device::Device* g_device;
+std::shared_ptr<Device::Program> g_shadingProgram;
+std::shared_ptr<Device::VertexArray> g_vertexArray;
+std::shared_ptr<Device::Buffer> g_vertexBuffer;
 
 static void error_callback(int error, const char* description) {
     fprintf(stderr, "Error: %s\n", description);
@@ -25,89 +28,68 @@ static void input_callback(GLFWwindow* window, int key, int scancode, int action
     }
 }
 
-GLuint LoadShaders(const char* vertexFilePath, const char* fragmentFilePath) {
+std::shared_ptr<Device::Program> LoadShaders(const char* vertexFilePath, const char* fragmentFilePath)
+{
 
     //Create shaders
-    GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
-    GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+    auto vertexShader = g_device->GenShader(Device::Program::Shader::Type::Vertex);
+    auto fragmentShader = g_device->GenShader(Device::Program::Shader::Type::Fragment);
 
     std::string VertexShaderCode = "attribute vec3 vertexPosition_modelspace;\nvoid main(){\ngl_Position.xyz = vertexPosition_modelspace;\ngl_Position.w = 1.0;\n}";
     std::string FragmentShaderCode = "void main() {\ngl_FragColor = vec4(1,0,0,1);\n}";
 
-    GLint result = GL_FALSE;
-    int InfoLogLength;
-
-    printf("Compiling shader : %s\n", vertexFilePath);
-    char const* VertexSourcePointer = VertexShaderCode.c_str();
-    glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
-    glCompileShader(VertexShaderID);
-
-    glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ) {
-        std::vector<char> VertexShaderErrorMessage = std::vector<char>(InfoLogLength + 1);
-        glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
-        printf("%s\n", &VertexShaderErrorMessage[0]);
+    vertexShader->SetSource(VertexShaderCode);
+    if (!vertexShader->Compile())
+    {
+        std::vector<char> infoLog = vertexShader->GetInfoLog();
+        printf("%s\n", infoLog.data());
     }
 
-    printf("Compiling shader : %s\n", fragmentFilePath);
-    char const* FragmentSourcePointer = FragmentShaderCode.c_str();
-    glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
-    glCompileShader(FragmentShaderID);
-
-    glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &result);
-    glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ) {
-        std::vector<char> FragmentShaderErrorMessage = std::vector<char>(InfoLogLength + 1);
-        glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
-        printf("%s\n", &FragmentShaderErrorMessage[0]);
+    fragmentShader->SetSource(FragmentShaderCode);
+    if (!fragmentShader->Compile())
+    {
+        std::vector<char> infoLog = fragmentShader->GetInfoLog();
+        printf("%s\n", infoLog.data());
     }
 
-    printf("Linking program\n");
-    GLuint ProgramID = glCreateProgram();
-    glAttachShader(ProgramID, VertexShaderID);
-    glAttachShader(ProgramID, FragmentShaderID);
-    glLinkProgram(ProgramID);
-
-    glGetProgramiv(ProgramID, GL_LINK_STATUS, &result);
-    glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-    if ( InfoLogLength > 0 ) {
-        std::vector<char> ProgramErrorMessage = std::vector<char>(InfoLogLength + 1);
-        glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
-        printf("%s\n", &ProgramErrorMessage[0]);
+    auto program = g_device->GenProgram();
+    program->AttachShader(vertexShader);
+    program->AttachShader(fragmentShader);
+    if (!program->Link())
+    {
+        std::vector<char> infoLog = program->GetInfoLog();
+        printf("%s\n", infoLog.data());
     }
 
-    glDetachShader(ProgramID, VertexShaderID);
-    glDetachShader(ProgramID, FragmentShaderID);
+    program->DetachShader(vertexShader);
+    program->DetachShader(fragmentShader);
 
-    glDeleteShader(VertexShaderID);
-    glDeleteShader(FragmentShaderID);
-
-    return ProgramID;
+    return program;
 }
 
 void loop(void) {
     double time = glfwGetTime();
     glfwPollEvents();
 
-    glClear( GL_COLOR_BUFFER_BIT );
+    Utility::BitMask<Device::Buffer::Type> mask;
+    mask.SetBit(Device::Buffer::Type::Color, true);
 
-    glUseProgram(programID);
+    g_device->ClearBuffers(mask);
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glVertexAttribPointer(
+    g_shadingProgram->Bind();
+
+    g_vertexArray->EnableAttributeArray(0);
+    g_vertexBuffer->Bind(Device::Buffer::Target::ArrayBuffer);
+    g_vertexArray->SetAttributeArray(
         0,
         3,
-        GL_FLOAT,
-        GL_FALSE,
+        Device::DataType::Float,
+        Device::Boolean::False,
         0,
-        (void*)0
-    );
+        nullptr);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glDisableVertexAttribArray(0);
-
+    g_device->DrawArrays(Device::DrawMode::Triangles, 0, 3);
+    g_vertexArray->DisableAttributeArray(0);
 
     glfwSwapBuffers(g_mainWindow);
 }
@@ -134,20 +116,15 @@ int main() {
     }
     glfwMakeContextCurrent(g_mainWindow);
 
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-        fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
-        return -1;
-    }
+    Device::Device device = Device::Device();
 
     glfwSetKeyCallback(g_mainWindow, input_callback);
-    glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+    device.SetClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
+    g_vertexArray = device.GenVertexArray();
+    g_vertexArray->Bind();
 
-    programID = LoadShaders("VertexShaderFile", "FragmentShaderFile");
+    g_shadingProgram = LoadShaders("VertexShaderFile", "FragmentShaderFile");
 
     static const GLfloat g_vertex_buffer_data[] = {
         -1.0f, -1.0f, 0.0f,
@@ -155,9 +132,9 @@ int main() {
         0.0f, 1.0f, 0.0f
     };
 
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    g_vertexBuffer = device.GenBuffer();
+    g_vertexBuffer->Bind(Device::Buffer::Target::ArrayBuffer);
+    g_vertexBuffer->SetData(Device::Buffer::Target::ArrayBuffer, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, Device::Buffer::Usage::StaticDraw);
 
 
     #ifdef __EMSCRIPTEN__
@@ -168,11 +145,6 @@ int main() {
             loop();
         }
     #endif
-
-    glDeleteBuffers(1, &vertexBuffer);
-    glDeleteVertexArrays(1, &VertexArrayID);
-    glDeleteProgram(programID);
-
 
     glfwTerminate();
     return 0;

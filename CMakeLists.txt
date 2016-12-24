@@ -5,6 +5,7 @@
 # endif()
 
 cmake_minimum_required(VERSION 3.0)
+cmake_policy(SET CMP0015 NEW)
 project(Kaleidoscope)
 set(CMAKE_MOUDLE_PATH ${CMAKE_MODULE_PATH} "${Kaleidoscope_SOURCE_DIR}/cmake")
 set(BIN_DIR ${Kaleidoscope_SOURCE_DIR}/bin)
@@ -43,14 +44,16 @@ endif()
 
 if(EMSCRIPTEN)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINER_FLAGS} -s USE_GLFW=3")
 endif()
 
 file(GLOB_RECURSE KALEIDO_SRC "src/*.cpp")
 file(GLOB_RECURSE KALEIDO_INC "include/*.h??")
-set(KALEIDO_FILES ${KALEIDO_INC} ${KALEIDO_SRC})
+file(GLOB_RECURSE KALEIDO_INL "inline/*.inl")
+set(KALEIDO_FILES ${KALEIDO_INC} ${KALEIDO_INL} ${KALEIDO_SRC})
 
-include_directories("include" ${THIRDPARTY_INCLUDE_DIRS})
+include_directories("include" "inline" ${THIRDPARTY_INCLUDE_DIRS})
 
 if(WIN32)
     # Special thanks to Florian for this source group trick
