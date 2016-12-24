@@ -10,9 +10,10 @@
 #include <GLFW/glfw3.h>
 
 #include "Device/Device.hpp"
+#include "Window/Factory.hpp"
 
 
-GLFWwindow* g_mainWindow;
+std::shared_ptr<Window::Window> g_mainWindow;
 Device::Device* g_device;
 std::shared_ptr<Device::Program> g_shadingProgram;
 std::shared_ptr<Device::VertexArray> g_vertexArray;
@@ -91,34 +92,30 @@ void loop(void) {
     g_device->DrawArrays(Device::DrawMode::Triangles, 0, 3);
     g_vertexArray->DisableAttributeArray(0);
 
-    glfwSwapBuffers(g_mainWindow);
+    g_mainWindow->SwapBuffers();
 }
 
 int main() {
     glfwSetErrorCallback(error_callback);
 
-    if (!glfwInit()) 
-    {
-        return -1;
-    }
+    Window::Factory windowFactory = Window::Factory();
     
-    glfwDefaultWindowHints();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    windowFactory.ResetHints();
+    windowFactory.SetHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    windowFactory.SetHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    windowFactory.SetHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    windowFactory.SetHint(GLFW_RESIZABLE, GL_FALSE);
 
-    g_mainWindow = glfwCreateWindow(640, 480, "Hello, World", NULL, NULL);
-    if(!g_mainWindow)
+    g_mainWindow = windowFactory.CreateWindow(640, 480, "Hello, World", nullptr, nullptr);
+    if(!g_mainWindow.get())
     {
-        glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(g_mainWindow);
+    g_mainWindow->MakeContextCurrent();
 
     Device::Device device = Device::Device();
 
-    glfwSetKeyCallback(g_mainWindow, input_callback);
+    g_mainWindow->SetKeyCallbackFunction(input_callback);
     device.SetClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
     g_vertexArray = device.GenVertexArray();
@@ -140,12 +137,11 @@ int main() {
     #ifdef __EMSCRIPTEN__
         emscripten_set_main_loop(loop, 0, 1);
     #else
-        while(!glfwWindowShouldClose(g_mainWindow))
+        while(!g_mainWindow->ShouldClose())
         {
             loop();
         }
     #endif
 
-    glfwTerminate();
     return 0;
 }
